@@ -1,0 +1,13 @@
+{
+	"name":"第一章地圖",
+	"size":[15, 15, 1],
+	"src":"https://130e178e8f8ba617604b-8aedd782b7d22cfe0d1146da69a52436.ssl.cf1.rackcdn.com/nhs-denies-widespread-windows-xp-use-showcase_image-2-a-9915.jpg",
+	"object":{
+		"object1" : [1, 1, 1, "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/NYCS-bull-trans-1.svg/1024px-NYCS-bull-trans-1.svg.png"],
+		"object8" : [5, 5, 1, "https://bciconline.com/wp-content/uploads/2017/10/2.png"],
+		"object2" : [5, 10, 1, "https://steamuserimages-a.akamaihd.net/ugc/932690417986032845/A7E08841E690728ECE4E1C8C91A50C801EA158A6/"],
+		"object3" : [3, 3, 1, "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIyai943xDSKIZjre29SZtuC34J42YzcC0Na68tw-ncJyMW9ZtRw"],
+		"object5" : [7, 2, 1, "http://worldartsme.com/images/7-clipart-1.jpg"],
+		"object6" : [8, 5, 1, "https://upload.wikimedia.org/wikipedia/commons/8/82/MRT_Singapore_Destination_8_%281%29.png"]
+	}
+}

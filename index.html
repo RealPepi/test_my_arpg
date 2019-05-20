@@ -1,0 +1,2206 @@
+<!--
+	1. 我把聊天室的字自動保存了 (後來的人看得到之前在說啥)
+	2. 修正閒聊訊息會跑錯棚的bug
+	3. 稍微幫創造地圖跟創造物件的那邊做了點防呆
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+	
+	<script src="/socket.io/socket.io.js"></script>
+	<script>var socket = io.connect();</script>
+
+	<title>跑圖囉</title>
+	<link rel=stylesheet type="text/css" href="indexStyles.css">
+	<script src="socketFunction.js"></script>
+
+	<script src="mapFunctions.js"></script>
+	<style type="text/css">
+		body {
+			user-select: none;
+		}
+		.create_or_edit_role_btn {
+			position: fixed;
+			left: 2vh;
+			width: 17vh;
+			height: 4vh;
+			border: 1px groove;
+			text-align: center;
+			line-height: 4vh;
+			border-radius: 5px;
+			/*box-shadow:6px 6px 6px rgba(20%,20%,40%,0.5),inset 1px 1px 4px 2px rgba(20%,20%,40%,0.5);*/
+			/*box-shadow:-2px -2px 3px rgba(20%,20%,40%,0.5);*/
+			box-shadow: 2px 2px 3px 3px #cccccc;
+			color: gray;
+		}
+		.create_or_edit_role_btn:hover {
+			background-color: gray;
+			color: white;
+		}
+		.create_or_edit_role_page {
+			position: absolute;
+			top: 10vh;
+			left: 55vh;
+			width: 70vh;
+			height: 80vh;
+			border: 2px groove;
+			border-radius: 5px;
+			z-index: 1;
+			display: block;
+			background-color: white;
+		}
+		.background {
+			position: fixed;
+			top: -10px;
+			left: -10px;
+			width: 100%;
+			height: 100%;
+			background-color: black;
+			opacity: 0.4;
+			display: block;
+		}
+		.role_quality_setting_horizontal {
+			position: absolute;
+			top: 7vh;
+			left: 0px;
+			height: 1px;
+			width: 100%;
+			background-color: gray;
+		}
+		.role_quality_content_one {
+			position: relative;
+			top: 5vh;
+			display: block;
+			width: 100%;
+		}
+		.role_quality_content_two {
+			opacity: 0;
+		}
+		[name=page-control] {
+			display: none;
+		}
+		#page-container {
+			position: relative;
+			width: 100%;
+			height: 70%;
+			overflow: hidden;
+		}
+		#page-container .role_quality_content {
+			position: absolute;
+			top: 5vh;
+			left: 3vh;
+			width: 100%;
+			height: 100%;
+			transition: all 0.5s;
+			opacity: 0;
+			transform: translateX(-100%);
+		}
+		#p1:checked~#page-container #page1, #p2:checked~#page-container #page2, #p3:checked~#page-container #page3, #p4:checked~#page-container #page4 {
+			opacity: 1;
+			transform: translateX(0%);
+		}
+		#p1:checked~#page-container #page1~div, #p2:checked~#page-container #page2~div, #p3:checked~#page-container #page3~div, #p4:checked~#page-container #page4~div {
+			opacity: 0;
+			transform: translateX(100%);
+		}
+		.create_or_edit_role_page_bottom {
+			position: fixed;
+			top: 80%;
+			left: 80vh;
+			width: 20vh;
+			height: 5vh;
+			;
+		}
+		.create_or_edit_role_page_bottom label {
+			font-size: 20px;
+			width: 20px;
+			opacity: 0;
+		}
+		#p1:checked~.create_or_edit_role_page_bottom [for=p1], #p2:checked~.create_or_edit_role_page_bottom [for=p2], #p3:checked~.create_or_edit_role_page_bottom [for=p3], #p4:checked~.create_or_edit_role_page_bottom [for=p4] {
+			background: gray;
+		}
+		.dice_button {
+			position: absolute;
+			top: 1%;
+			left: 80%;
+			width: 5vh;
+			height: 5vh;
+			border-style: outset;
+		}
+		.dice_page {
+			position: absolute;
+			top: 5%;
+			left: 13%;
+			width: 50vh;
+			height: 40vh;
+			z-index: 1;
+			background-color: white;
+			border: groove;
+			display: none;
+		}
+		.dice_close_btn {
+			position: absolute;
+			top: 5%;
+			left: 93%;
+			width: 3vh;
+			height: 3vh;
+			border: groove;
+		}
+		.play_info {
+			position: absolute;
+			width: 60vh;
+			height: 70vh;
+			font-size: 20px;
+		}
+		.play_info ul li {
+			float: left;
+		}
+    </style>
+</head>
+<body>
+	<div>
+		<!-- 地圖在這邊 -->
+		<div id="dm_map_edit">
+			<input id="uploader" type="file"> <input onclick="saveTextAsFile(allObjJson['name'], JSON.stringify(allObjJson))" type="button" value="輸出地圖檔案(背景+物件)"> <input onclick="drawDrid(ctxHid, ''); ctxHid.stroke(); drawMagnifier(canvasMapHid);" type="button" value="顯示圖像"> <input onclick="newMap();" type="button" value="建立空白地圖(刷空物件)"> <input onclick="newObj();" type="button" value="建立物件">
+		</div>
+		<canvas height="1000" id="maphid" style="display: none;" width="1000"></canvas>
+		<canvas height="1000" id="map" width="1000"></canvas><!-- 角色列表 -->
+		<div class="bottom_cbox" oncontextmenu="return false">
+			<!-- 自己的角色 -->
+			<div class="character_box" id="character_info_main">
+				<div class="character_box_inside">
+					<p class="all_character_name" id="myName">無</p>
+				</div>
+			</div><!-- 分割線 -->
+			<div class="character_box_dis"></div><!-- 其它的角色 -->
+			<div class="bottom_scroll" id="bottom_scroll">
+				<!-- 長度隨著角色數量而變動 -->
+				<div class="character_box_set">
+					<!-- 其他玩家（接上資料庫後，此區塊會轉為陣列） -->
+					<div class="character_box">
+						<div class="character_box_inside">
+							<p class="all_character_name">玲</p>
+						</div>
+					</div>
+					<div class="character_box">
+						<div class="character_box_inside">
+							<p class="all_character_name">Achunk</p>
+						</div>
+					</div>
+					<div class="character_box">
+						<div class="character_box_inside">
+							<p class="all_character_name">艾爾溫</p>
+						</div>
+					</div>
+					<div class="character_box">
+						<div class="character_box_inside">
+							<p class="all_character_name">Ashes</p>
+						</div>
+					</div>
+					<div class="character_box">
+						<div class="character_box_inside">
+							<p class="all_character_name">哥布</p>
+						</div>
+					</div>
+					<div class="character_box">
+						<div class="character_box_inside">
+							<p class="all_character_name">邁爾斯</p>
+						</div>
+					</div>
+					<div class="character_box">
+						<div class="character_box_inside">
+							<p class="all_character_name">海豹女精靈</p>
+						</div>
+					</div><!-- 新增玩家 -->
+					<div class="character_box_plus" data-target="#popWindow" data-toggle="modal" id="plus">
+						<div class="character_box_inside"><img src="https://api.fnkr.net/testimg/350x200/888888/DDD/?text=New"></div>
+					</div>
+				</div>
+			</div>
+		</div><!-- ??? -->
+		<!-- 角色資訊與對話 -->
+		<div class="character_info" id="character_info">
+			<div class="character_info_box"></div>
+			<div class="xicon remove icon"></div>
+		</div><!-- 角色立繪 -->
+		<div class="character_info_pic" id="character_info_pic"></div>
+		<div id="character_info_name">
+			<p class="character_info_name_font"></p>
+		</div><!-- ??? -->
+		<!-- 骰子 -->
+		<div class="dice_box">
+			<!-- 點擊骰子後展開的視窗 -->
+			<div class="dice_window" id="dice_window">
+				<!-- 選擇骰子 -->
+				<div class="dice_window_chose">
+					<div class="dice_window_chose_dice">
+						<div class="dice_window_chose_dice_pic">
+							4
+						</div>
+					</div>
+					<div class="dice_window_chose_dice">
+						<div class="dice_window_chose_dice_pic">
+							6
+						</div>
+					</div>
+					<div class="dice_window_chose_dice">
+						<div class="dice_window_chose_dice_pic">
+							8
+						</div>
+					</div>
+					<div class="dice_window_chose_dice">
+						<div class="dice_window_chose_dice_pic">
+							10
+						</div>
+					</div>
+					<div class="dice_window_chose_dice">
+						<div class="dice_window_chose_dice_pic">
+							12
+						</div>
+					</div>
+					<div class="dice_window_chose_dice">
+						<div class="dice_window_chose_dice_pic">
+							20
+						</div>
+					</div>
+					<div class="dice_window_chose_dice">
+						<div class="dice_window_chose_dice_pic">
+							100
+						</div>
+					</div>
+				</div><input class="dice_amount" id="dice_amount" type="text"> <!-- 擲骰確認 -->
+				<div class="dice_go"></div>
+			</div>
+			<div class="dice_box_inside" id="dice_btn"></div>
+		</div><!--  聊天室  -->
+		<div class="text_box">
+			<!-- 主要聊天室 -->
+			<div class="text_box_main scroll container">
+				<!-- 標籤 -->
+				<div class="major_glass" id="glass">
+					主要
+				</div>
+				<div class="chat_id chat_id_up" id="player_tag">
+					<p></p>
+				</div><!-- 內文。接上資料庫後，此區塊會轉為陣列 -->
+				<div class="text_box_text_main scroll" id="major_chat_lobby"></div><!-- 文字輸入 -->
+				<textarea class="text_input_main_box" id="major_chat"></textarea>
+			</div><!-- 閒聊聊天室 -->
+			<div class="text_box_chat scroll container">
+				<!-- 標籤 -->
+				<div class="talk" id="talk">
+					閒聊
+				</div>
+				<div class="chat_id chat_id_down" id="player_tag_chat">
+					<p></p>
+				</div>
+				<div class="text_box_text_chat scroll" id="gossip_chat_lobby"></div><!-- 文字輸入 -->
+				<textarea class="text_input_chat_box" id="gossip_chat"></textarea>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="popWindow" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">新增角色</h5><button aria-label="Close" class="close" data-dismiss="modal" type="button"><span aria-hidden="true">&times;</span></button>
+				</div>
+				<div class="modal-body" style="text-align:center;">
+					<button class="btn btn-outline-secondary btn-lg btn-block" data-toggle="modal" data-dismiss="modal" data-target="#a" type="button">創造角色</button> <button class="btn btn-outline-secondary btn-lg btn-block" data-dismiss="modal" type="button">從資料庫選擇</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="a" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+		<div class="create_or_edit_role_page" id="create_or_edit_role_page" style="max-width:560px;min-width:559px;">
+			<div style="line-height: 7vh; font-size: 18px;">
+				角色素質設定 <button>創角完成</button>
+			</div>
+			<div class="role_quality_setting_horizontal"></div><!-- //骰子 -->
+			<div class="dice_button" id="dice_button">
+				dice
+			</div>
+			<div class="dice_page" id="dice_page">
+				<div class="dice_close_btn" id="dice_close_btn">
+					x
+				</div>
+				<div id="dice_sum" style="position: absolute; top: 2%; left: 9%; width: 40vh;height: 10vh; border: 1px groove; overflow: scroll; overflow-x: hidden;"></div>
+				<div id="dice_choose" style="position: absolute; top:29%;left: 9%; width: 40.7vh;height: 3vh;border: 1px groove;">
+					<div id="reset" style="position:absolute; top:10%; left: 80%; width: 3vh;height: 2vh; border:1px solid;background-image: url(./reset.png);background-size: contain; background-repeat: no-repeat;"></div>
+					<div id="right" style="position:absolute; top:10%; left: 90%; width: 3vh;height: 2vh; border:1px solid;background-image: url(./right.png);background-size: contain; background-repeat: no-repeat;"></div>
+				</div>
+				<div style="position: absolute; top:50%;left: 20%;">
+					<select id="dice_number">
+						<option value="4">
+							4
+						</option>
+						<option value="6">
+							6
+						</option>
+						<option value="8">
+							8
+						</option>
+						<option value="10">
+							10
+						</option>
+						<option value="12">
+							12
+						</option>
+						<option value="20">
+							20
+						</option>
+						<option value="100">
+							百
+						</option>
+					</select> 面骰
+				</div>
+				<div style="position: absolute; top:51%; left: 50%;">
+					<input id="dice_time" style="width: 3vh;height: 3vh;" type="text"> 個(次)
+				</div>
+				<div id="go" style="position: absolute; top:70%; left: 40%; width: 10vh;height: 5vh; border: groove; text-align:center; font-size: 0.5cm;">
+					GO
+				</div>
+			</div><input checked id="p1" name="page-control" type="radio"> <input id="p2" name="page-control" type="radio"> <input id="p3" name="page-control" type="radio"> <input id="p4" name="page-control" type="radio">
+			<div id="page-container">
+				<!-- 創角頁面1 -->
+				<div class="role_quality_content" id="page1">
+					<div style="border: 1px solid #DDDDDD; border-radius:5px; float: right;width:31%;height:35%;margin-right: 5.5%;margin-top:1%;">
+						立繪
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width: 14%;font-size:16px;border:0px solid green; display:inline-block; text-align: left; margin-right:5px;">角色名稱</span> <input style="font-size:16px;width:calc(46% - 12px);padding-left:5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text">
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width: 14%;font-size:16px;border:0px solid green; display:inline-block; text-align: left; margin-right:5px;">玩家名稱</span> <input style="font-size:16px;width:calc(46% - 12px);padding-left:5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text">
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width: 14%;font-size:16px;border:0px solid green; display:inline-block; text-align: left; margin-right:5px;">出現紀錄</span> <input readonly style="font-size:16px;width:calc(46% - 12px);padding-left:5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text" value="x">
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-right:5px;">版本</span> <input readonly style="font-size:16px;width:calc(20% - 5px);padding-left:5px;margin-right: 5px;border: none;border:1px solid #DDDDDD border-radius:3.6px;" type="text" value="DnD 5e"> <span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-left:5px;">陣營</span> <select style="width:calc(23% - 3px);font-size:16px;">
+							<option value="守序善良">
+								守序善良
+							</option>
+							<option value="中立善良">
+								中立善良
+							</option>
+							<option value="混亂善良">
+								混亂善良
+							</option>
+							<option value="首序中立">
+								首序中立
+							</option>
+							<option value="絕對中立">
+								絕對中立
+							</option>
+							<option value="混亂中立">
+								混亂中立
+							</option>
+							<option value="守序邪惡">
+								守序邪惡
+							</option>
+							<option value="中立邪惡">
+								中立邪惡
+							</option>
+							<option value="混亂邪惡">
+								混亂邪惡
+							</option>
+						</select>
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-right:5px;">稱號</span> <input style="font-size:16px;width:calc(20% - 5px);padding-left:5px;margin-right: 5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text"> <span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-left:5px;">體型</span> <select style="width:calc(23% - 3px);font-size:16px;">
+							<option value="壯碩">
+								壯碩
+							</option>
+							<option value="普通">
+								普通
+							</option>
+							<option value="瘦小">
+								瘦小
+							</option>
+						</select>
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-right:5px;">信仰</span> <input style="font-size:16px;width:calc(24% - 5px);padding-left:5px;margin-right: 5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text"> <span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-left:5px;">職業</span> <select style="width:calc(24% - 5px);font-size:16px;margin-right: 5px;">
+							<option value="牧師">
+								牧師
+							</option>
+							<option value="戰士">
+								戰士
+							</option>
+							<option value="遊蕩者">
+								遊蕩者
+							</option>
+							<option value="聖騎士">
+								聖騎士
+							</option>
+							<option value="術士">
+								術士
+							</option>
+							<option value="法師">
+								法師
+							</option>
+							<option value="吟遊詩人">
+								吟遊詩人
+							</option>
+							<option value="遊俠">
+								遊俠
+							</option>
+							<option value="魔導師">
+								魔導師
+							</option>
+							<option value="野蠻人">
+								野蠻人
+							</option>
+							<option value="武僧">
+								武僧
+							</option>
+							<option value="德魯伊">
+								德魯伊
+							</option>
+						</select> <span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-left:5px;">性別</span> <select style="width:calc(23% - 5px);font-size:16px;">
+							<option value="男性">
+								男性
+							</option>
+							<option value="女性">
+								女性
+							</option>
+							<option value="其它">
+								其它
+							</option>
+						</select>
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-right:5px;">背景</span> <select style="width:calc(24% - 5px);font-size:16px;margin-right: 5px;">
+							<option value="侍僧">
+								侍僧
+							</option>
+							<option value="罪犯">
+								罪犯
+							</option>
+							<option value="貴族">
+								貴族
+							</option>
+							<option value="學者">
+								學者
+							</option>
+							<option value="人民英雄">
+								人民英雄
+							</option>
+							<option value="藝人">
+								藝人
+							</option>
+							<option value="詐騙高手">
+								詐騙高手
+							</option>
+							<option value="行會工匠">
+								行會工匠
+							</option>
+							<option value="化外之民">
+								化外之民
+							</option>
+							<option value="水手">
+								水手
+							</option>
+							<option value="孤兒">
+								孤兒
+							</option>
+							<option value="遠行者">
+								遠行者
+							</option>
+						</select> <span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-left:5px;">種族</span> <select style="width:calc(24% - 5px);font-size:16px;margin-right: 5px;">
+							<option value="精靈">
+								精靈
+							</option>
+							<option value="半精靈">
+								半精靈
+							</option>
+							<option value="人類">
+								人類
+							</option>
+							<option value="半身人">
+								半身人
+							</option>
+							<option value="矮人">
+								矮人
+							</option>
+							<option value="地侏">
+								地侏
+							</option>
+							<option value="魔人">
+								魔人
+							</option>
+							<option value="龍裔">
+								龍裔
+							</option>
+							<option value="半獸人">
+								半獸人
+							</option>
+							<option value="龜人">
+								龜人
+							</option>
+							<option value="哥利亞">
+								哥利亞
+							</option>
+							<option value="天狗">
+								天狗
+							</option>
+							<option value="阿斯莫">
+								阿斯莫
+							</option>
+							<option value="費爾伯格">
+								費爾伯格
+							</option>
+							<option value="斑貓人">
+								斑貓人
+							</option>
+							<option value="蜥蜴人">
+								蜥蜴人
+							</option>
+							<option value="梭螺魚人">
+								梭螺魚人
+							</option>
+							<option value="熊地精">
+								熊地精
+							</option>
+							<option value="哥布林">
+								哥布林
+							</option>
+							<option value="大哥布林">
+								大哥布林
+							</option>
+							<option value="狗頭人">
+								狗頭人
+							</option>
+							<option value="獸人">
+								獸人
+							</option>
+							<option value="純種蛇人">
+								純種蛇人
+							</option>
+						</select> <span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-left:5px;">年齡</span> <input style="font-size:16px;width:calc(23% - 5px);padding-left:5px;margin-right: 5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text">
+					</div>
+					<div style="float: right;width:55%;height:31%;margin-right: 7%;">
+						<div class="btn-group" style="display:block;margin-bottom: 0.4rem;">
+							<button class="btn btn-outline-dark btn-group-sm" id="personality" style="color:black;display:inline;width:35%;margin:0;padding:1px 5px 1px 5px;" type="button">個性描述</button> <button class="btn btn-outline-dark btn-group-sm" id="introduction" style="color:black;display:inline;width:22%;margin:0;padding:1px 5px 1px 5px;" type="button">簡述</button>
+						</div>
+						<textarea id="personality_box" placeholder="個性描述" style="padding:5px;font-size:16px;height:72%;width:100%;border:1px solid black;border: 1px solid #DDDDDD; border-radius: 2px;resize:none;display:block;"></textarea> 
+						<textarea id="introduction_box" placeholder="簡述" style="padding:5px;font-size:16px;height:72%;width:100%;border:1px solid black;border: 1px solid #DDDDDD; border-radius: 2px;resize:none;display:none;"></textarea>
+					</div>
+					<script>
+					                    document.getElementById('personality').onclick = function() {
+					                        document.getElementById('personality_box').style.display  = "block";
+					                        document.getElementById('introduction_box').style.display =  "none";
+					                    }
+					                    document.getElementById('introduction').onclick = function() {
+					                        document.getElementById('personality_box').style.display  =  "none";
+					                        document.getElementById('introduction_box').style.display = "block";
+					                    }
+					</script>
+					<div style="margin-bottom:16px;">
+						<span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-right:5px;">髮色</span> <input style="font-size:16px;width:calc(24% - 5px);padding-left:5px;margin-right: 5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text">
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-right:5px;">眼色</span> <input style="font-size:16px;width:calc(24% - 5px);padding-left:5px;margin-right: 5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text">
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-right:5px;">身高</span> <input style="font-size:16px;width:calc(24% - 5px);padding-left:5px;margin-right: 5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text">
+					</div>
+					<div style="margin-bottom:16px;">
+						<span style="width:7%;font-size:16px;display:inline-block;text-align:left;margin-right:5px;">體重</span> <input style="font-size:16px;width:calc(24% - 5px);padding-left:5px;margin-right: 5px;border: none;border:1px solid #DDDDDD;border-radius:3.6px;" type="text">
+					</div>
+				</div><!-- 創角頁面2 -->
+				<div class="role_quality_content" id="page2">
+					<div class="play_info">
+						<ul>
+							<li style="width: 20vh; height: 2vh;">角色等級&nbsp;&nbsp; <input id="player_level" style="width: 5vh; height: 2vh;" type="text"></li>
+							<li style="width: 18vh;">經驗&nbsp;&nbsp;<input id="player_experience" style="width: 5vh;height: 2vh;" type="text"></li>
+							<li>激勵&nbsp;&nbsp;<input id="player_cheer_up" style="width: 5vh ;height: 2vh;" type="text"></li>
+						</ul><br>
+						<ul>
+							<li style="width: 30vh; height: 2vh;">生命 &nbsp;&nbsp; <input id="player_life_max" style="width: 5vh; height: 2vh;" type="text" value="最大"> <input id="player_life_corrent" style="width: 5vh; height: 2vh;" type="text" value="目前"> <input id="player_life_temperary" style="width: 5vh;height: 2vh;" type="text" value="暫時"></li>
+							<li>生命骰 <input id="player_life_dice" style="width: 5vh; height: 2vh;" type="text"></li>
+						</ul><br>
+					</div>
+					<div class="quality" style="position:absolute; top:20%; left: 0%;">
+						<ul>
+							<li>屬性</li>
+							<li style="list-style: none; display: inline">
+								<div style="overflow: scroll; overflow-x: hidden; font-size: 0.2cm; width: 20vh; height: 15vh;">
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											名稱
+										</div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											屬性點
+										</div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											暫時屬性
+										</div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											調整值
+										</div>
+									</div>
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											力量
+										</div>
+										<div class="Attributes" contenteditable="true" id="1" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" id="2" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" id="3" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											敏捷
+										</div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div class="Attributes" style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											體質
+										</div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div class="Attributes" style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											智力
+										</div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div class="Attributes" style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											感知
+										</div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div class="Attributes" style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											魅力
+										</div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div class="Attributes" contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+								</div>
+							</li>
+						</ul>
+					</div>
+					<div class="Exemption" style="position: fixed; top: 10vh; left: 25vh;">
+						<ul>
+							<li>豁免</li>
+							<li style="list-style: none">
+								<br>
+								<div style="overflow: scroll; overflow-x:hidden; font-size: 0.2cm; width: 20vh; height: 15vh;">
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											名稱
+										</div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											加值
+										</div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											熟練
+										</div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											其他
+										</div>
+									</div>
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											力量
+										</div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											敏捷
+										</div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											體質
+										</div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											智力
+										</div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											感知
+										</div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div style=" float:left; width:4vh; height: 4vh; border:1px groove;">
+											魅力
+										</div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+										<div contenteditable="true" style=" float:left; width:4vh; height: 4vh; border:1px groove;"></div>
+									</div>
+								</div>
+							</li>
+						</ul>
+					</div>
+					<div class="language" style="position: fixed; top: 10vh; left: 50vh;">
+						<ul>
+							<li>語言</li>
+							<li style="list-style: none">
+								<br>
+								<div style="overflow: scroll; font-size: 0.2cm; width: 10vh; height: 12vh;">
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+								</div>
+							</li>
+						</ul>
+					</div>
+					<div class="skillful_tool" style="position: absolute; top: 32vh; left: 3vh;">
+						<ul>
+							<li>熟練工具</li>
+							<li style="list-style: none">
+								<br>
+								<div style="overflow: scroll; font-size: 0.2cm; width: 10vh; height: 12vh;">
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+								</div>
+							</li>
+						</ul>
+					</div>
+					<div class="expertise" style="position: absolute; top:32vh; left: 20vh;">
+						<ul>
+							<li>專長</li>
+							<li style="list-style: none">
+								<br>
+								<div style="overflow: scroll; font-size: 0.2cm; width: 10vh; height: 12vh;">
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float:left; width: 8vh; height: 3vh; border:1px groove;"></div>
+									</div>
+								</div>
+							</li>
+						</ul>
+					</div>
+					<div class="combo" style="position: absolute; top: 32vh; left: 35vh;">
+						<ul>
+							<li>攻擊手段連技</li>
+							<li style="list-style: none; display: inline">
+								<div style="overflow: scroll; overflow-x: hidden; font-size: 0.2cm; width:25vh ; height: 15vh;">
+									<div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;">
+											名稱
+										</div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;">
+											加值
+										</div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;">
+											傷害
+										</div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;">
+											距離
+										</div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;">
+											屬性
+										</div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+									</div>
+									<div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+										<div contenteditable="true" style="float: left; width: 4vh; height: 3vh; border: 1px groove;"></div>
+									</div>
+								</div>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<div class="role_quality_content" id="page3">
+					<div id="hr" style="position:absolute; top: -2vh; left: 31vh; width: 2px; height: 60vh; background-color:gray"></div>
+					<div class="magic_item" style="position: absolute; top: 0vh; left: -2vh;">
+						<div style="overflow: auto; font-size: 0.2cm; width: 30vh; height: 15vh; border: 1px groove;">
+							<div>
+								<div style="width: 60vh; height: 4vh; background-color:rgb(0, 119, 230) ;color: white;font-size: 20px; line-height: 4vh;">
+									法術列表
+								</div>
+							</div>
+							<div style="width: 70vh;">
+								<div>
+									<div style=" float:left; width:5vh; height: 4vh; border:1px groove;">
+										環
+									</div>
+									<div style=" float:left; width:11vh; height: 4vh; border:1px groove;">
+										名稱
+									</div>
+									<div style=" float:left; width:7vh; height: 4vh; border:1px groove;">
+										施法時間
+									</div>
+									<div style=" float:left; width:5vh; height: 4vh; border:1px groove;">
+										距離
+									</div>
+									<div style=" float:left; width:5vh; height: 4vh; border:1px groove;">
+										類型
+									</div>
+									<div style=" float:left; width:5vh; height: 4vh; border:1px groove;">
+										時效
+									</div>
+									<div style=" float:left; width:5vh; height: 4vh; border:1px groove;">
+										傷害
+									</div>
+									<div style=" float:left; width:5vh; height: 4vh; border:1px groove;">
+										儀式
+									</div>
+									<div style=" float:left; width:10vh; height: 4vh; border:1px groove;">
+										法術成分
+									</div>
+								</div>
+							</div>
+							<div style="width: 60vh;">
+								<div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:11vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:7vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:10vh; height: 4vh; border:1px groove;"></div>
+								</div>
+							</div>
+							<div style="width: 60vh;">
+								<div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:11vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:7vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:10vh; height: 4vh; border:1px groove;"></div>
+								</div>
+							</div>
+							<div style="width: 60vh;">
+								<div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:11vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:7vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:10vh; height: 4vh; border:1px groove;"></div>
+								</div>
+							</div>
+							<div style="width: 60vh;">
+								<div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:11vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:7vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:10vh; height: 4vh; border:1px groove;"></div>
+								</div>
+							</div>
+							<div style="width: 60vh;">
+								<div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:11vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:7vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:10vh; height: 4vh; border:1px groove;"></div>
+								</div>
+							</div>
+							<div style="width: 60vh;">
+								<div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:11vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:7vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:5vh; height: 4vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:10vh; height: 4vh; border:1px groove;"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div id="use_magic" style="position: absolute; top: 30vh; left: -2vh;">
+						<div style="width: 15vh;height: 9.7vh;">
+							<div>
+								<div style="width: 15vh; height: 3vh; background-color:rgb(0, 119, 230) ;color: white;font-size: 20px; line-height: 3vh;">
+									施法
+								</div>
+							</div>
+							<div>
+								<div style="float:left; width:5vh; height: 3vh; border:1px groove; font-size: 5px;">
+									關鍵屬性
+								</div>
+								<div contenteditable="true" style="float:left; width:9.5vh; height: 3vh; border:1px groove;"></div>
+							</div>
+							<div>
+								<div style="float:left; width:5vh; height: 3vh; border:1px groove; font-size: 5px;">
+									法術DC
+								</div>
+								<div contenteditable="true" style="float:left; width:9.5vh; height: 3vh; border:1px groove;"></div>
+							</div>
+						</div>
+					</div>
+					<div id="everyday_magic_time" style="position: absolute; top: 30vh; left: 14vh;">
+						<div style="overflow: auto; width: 15vh;height: 20vh; border: 1px groove;">
+							<div>
+								<div style="width: 17.7vh; height: 3vh; background-color:rgb(0, 119, 230) ;color: white;font-size: 20px; line-height: 3vh;">
+									每日法術環
+								</div>
+							</div>
+							<div style="width: 20vh;">
+								<div style="float:left; width:3vh; height: 2vh; border:1px groove;">
+									環
+								</div>
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									剩餘
+								</div>
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									最大
+								</div>
+							</div>
+							<div style="width: 20vh;">
+								<div contenteditable="true" style="float:left; width:3vh; height: 2vh; border:1px groove;">
+									1
+								</div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 20vh;">
+								<div contenteditable="true" style="float:left; width:3vh; height: 2vh; border:1px groove;">
+									2
+								</div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 20vh;">
+								<div contenteditable="true" style="float:left; width:3vh; height: 2vh; border:1px groove;">
+									3
+								</div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 20vh;">
+								<div contenteditable="true" style="float:left; width:3vh; height: 2vh; border:1px groove;">
+									4
+								</div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 20vh;">
+								<div contenteditable="true" style="float:left; width:3vh; height: 2vh; border:1px groove;">
+									5
+								</div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 20vh;">
+								<div contenteditable="true" style="float:left; width:3vh; height: 2vh; border:1px groove;">
+									6
+								</div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 20vh;">
+								<div contenteditable="true" style="float:left; width:3vh; height: 2vh; border:1px groove;">
+									7
+								</div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 20vh;">
+								<div contenteditable="true" style="float:left; width:3vh; height: 2vh; border:1px groove;">
+									8
+								</div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+							</div>
+						</div>
+					</div>
+					<div id="race_ability" style="position: absolute; left: 35vh;">
+						<div style="overflow: auto; width: 30vh;height: 14vh; border: 1px groove;">
+							<div>
+								<div style="width: 30.5vh; height: 3vh; background-color:rgb(0, 119, 230) ;color: white;font-size: 20px; line-height: 3vh;">
+									種族能力
+								</div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+						</div>
+					</div>
+					<div id="career_special_ability" style="position: absolute; top:18vh; left: 35vh;">
+						<div style="overflow: auto; width: 30vh;height: 14vh; border: 1px groove;">
+							<div>
+								<div style="width: 30.5vh; height: 3vh; background-color:rgb(0, 119, 230) ;color: white;font-size: 20px; line-height: 3vh;">
+									職業/特殊能力
+								</div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:15vh; height: 2vh; border:1px groove;"></div>
+							</div>
+						</div>
+					</div>
+					<div id="skill" style="position: absolute; top:35vh; left: 33vh;">
+						<div style="overflow: auto; width: 12vh;height: 15vh; border: 1px groove;">
+							<div>
+								<div style="width: 17.5vh; height: 3vh; background-color:rgb(0, 119, 230) ;color: white;font-size: 20px; line-height: 3vh;">
+									技能
+								</div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									名稱
+								</div>
+								<div style="float:left; width:5vh; height: 2vh; border:1px groove;">
+									加值
+								</div>
+								<div style="float:left; width:5vh; height: 2vh; border:1px groove;">
+									熟
+								</div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									運動
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									特技動作
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									手上把戲
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									隱逆
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									奧秘
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									歷史
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									調查
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									自然
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									宗教
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									馴養動物
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									察言觀色
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									醫藥
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									觀察
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									求生
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									欺瞞
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									威嚇
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									表演
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 18vh;">
+								<div style="float:left; width:7vh; height: 2vh; border:1px groove;">
+									遊說
+								</div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:5vh; height: 2vh; border:1px groove;"></div>
+							</div>
+						</div>
+					</div>
+					<div id="ability_detailed_state" style="position: absolute; top:35vh; left: 48vh;">
+						<div style="overflow: auto; width: 17vh;height: 14vh; border: 1px groove;">
+							<div>
+								<div style="width: 30.5vh; height: 3vh; background-color:rgb(0, 119, 230) ;color: white;font-size: 20px; line-height: 3vh;">
+									能力詳述
+								</div>
+							</div>
+							<div style="width: 31vh;">
+								<div style="float:left; width:10vh; height: 2vh; border:1px groove;">
+									名稱
+								</div>
+								<div style="float:left; width:20vh; height: 2vh; border:1px groove;">
+									效果
+								</div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:10vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:20vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:10vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:20vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:10vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:20vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:10vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:20vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:10vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:20vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:10vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:20vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:10vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:20vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 31vh;">
+								<div contenteditable="true" style="float:left; width:10vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style="float:left; width:20vh; height: 2vh; border:1px groove;"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="role_quality_content" id="page4">
+					<div id="4_hr" style="position: absolute; left: 30vh; height: 74vh; width:1px;border: 1px groove;"></div>
+					<div class="equipment_detailed">
+						<div style="position: absolute;left: -2vh;">
+							<ul>
+								<li>裝備詳細</li>
+								<li style="list-style: none"><br></li>
+							</ul>
+						</div>
+						<div style="position:absolute;top:5vh; left: 3vh; overflow: scroll; overflow-y:hidden; font-size: 0.2cm; width: 25vh; height: 13vh;">
+							<div style="width: 29.5vh; height:2vh;background-color:#00FFCC;">
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									名稱
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									類型
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									增強
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									傷害
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									距離
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									特性
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									重量
+								</div>
+							</div>
+							<div style="width: 30vh;">
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 30vh;">
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 30vh;">
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 30vh;">
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+							</div>
+						</div>
+					</div>
+					<div class="item_menu">
+						<div style="position: absolute; top:25vh;left: 0vh;">
+							<ul>
+								<li>道具列表</li>
+								<li style="list-style: none"><br></li>
+							</ul>
+						</div>
+						<div style="position:absolute;top:30vh; left: 5vh; overflow: scroll; overflow-y:hidden; font-size: 0.2cm; width: 19.5vh; height: 13vh;">
+							<div style="width: 21.5vh; height:2.1vh;">
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									名稱
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									數量
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									價值
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									重量
+								</div>
+								<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+									說明
+								</div>
+							</div>
+							<div style="width: 21.5vh;">
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 21.5vh;">
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 21.5vh;">
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+							</div>
+							<div style="width: 21.5vh;">
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+							</div>
+						</div>
+						<div class="property">
+							<div style="position: absolute; top:0vh;left: 30vh;">
+								<ul>
+									<li>所持金</li>
+									<li style="list-style: none"><br></li>
+								</ul>
+							</div>
+							<div style="position:absolute;top:5vh; left: 35vh; overflow: scroll; overflow-x:hidden; font-size: 0.2cm; width: 12vh; height: 13vh;">
+								<div style="width: 9vh;">
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										銅幣
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										銀幣
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										銀金幣
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										金幣
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										白金幣
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										總額
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+							</div>
+						</div>
+						<div class="bullet">
+							<div style="position: absolute; top:0vh;left: 50vh;">
+								<ul>
+									<li>彈藥</li>
+									<li style="list-style: none"><br></li>
+								</ul>
+							</div>
+							<div style="position:absolute;top:5vh; left: 53vh; font-size: 0.2cm; width: 12vh; height: 13vh;">
+								<div style="width: 9vh;">
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										箭
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										弩失
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										吹箭
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:4vh; height: 3vh; border:1px groove;">
+										投石索彈丸
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 3vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:4vh; height: 2vh; border:1px groove;">
+										白金幣
+									</div>
+									<div contenteditable="true" style=" float:left; width:4vh; height: 2vh; border:1px groove;"></div>
+								</div>
+							</div>
+						</div>
+						<div class="defend_level">
+							<div style="position: absolute; top:20vh; left: 30vh;">
+								<ul>
+									<li>防禦等級</li>
+									<li style="list-style: none"><br></li>
+								</ul>
+							</div>
+							<div style="position:absolute;top:25vh; left:33vh; font-size: 0.2cm; width: 12vh; height: 13vh;">
+								<div style="width: 9vh;">
+									<div style=" float:left; width:6vh; height: 2vh; border:1px groove;">
+										敏捷
+									</div>
+									<div contenteditable="true" style=" float:left; width:2vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:6vh; height: 2vh; border:1px groove;">
+										裝備
+									</div>
+									<div contenteditable="true" style=" float:left; width:2vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:6vh; height: 2vh; border:1px groove;">
+										其他
+									</div>
+									<div contenteditable="true" style=" float:left; width:2vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:6vh; height: 3vh; border:1px groove;">
+										防禦等級
+									</div>
+									<div contenteditable="true" style=" float:left; width:2vh; height: 3vh; border:1px groove;"></div>
+								</div>
+							</div>
+						</div>
+						<div class="first_attack">
+							<div style="position: absolute; top:20vh; left: 40vh;">
+								<ul>
+									<li>先攻</li>
+									<li style="list-style: none"><br></li>
+								</ul>
+							</div>
+							<div style="position:absolute;top:25vh; left:45vh; font-size: 0.2cm; width: 12vh; height: 13vh;">
+								<div style="width: 9vh;">
+									<div style=" float:left; width:6vh; height: 2vh; border:1px groove;">
+										其他
+									</div>
+									<div contenteditable="true" style=" float:left; width:2vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:6vh; height: 2vh; border:1px groove;">
+										先攻
+									</div>
+									<div contenteditable="true" style=" float:left; width:2vh; height: 2vh; border:1px groove;"></div>
+								</div>
+							</div>
+						</div>
+						<div class="speed">
+							<div style="position: absolute; top:20vh; left: 50vh;">
+								<ul>
+									<li>速度</li>
+									<li style="list-style: none"><br></li>
+								</ul>
+							</div>
+							<div style="position:absolute;top:25vh; left:55vh; font-size: 0.2cm; width: 12vh; height: 13vh;">
+								<div style="width: 9vh;">
+									<div style=" float:left; width:6vh; height: 2vh; border:1px groove;">
+										步行
+									</div>
+									<div contenteditable="true" style=" float:left; width:2vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div>
+									<div style=" float:left; width:6vh; height: 2vh; border:1px groove;">
+										坐騎
+									</div>
+									<div contenteditable="true" style=" float:left; width:2vh; height: 2vh; border:1px groove;"></div>
+								</div>
+							</div>
+						</div>
+						<div class="passive_sensitive">
+							<div style="position: absolute; top:35vh; left: 32vh;">
+								<ul>
+									<li>被動感知</li>
+									<li style="list-style: none"><br></li>
+								</ul>
+							</div>
+							<div style="position:absolute;top:40vh; left:35vh; font-size: 0.2cm; width: 12vh; height: 13vh;">
+								<div style="width: 9vh;">
+									<div style=" float:left; width:2vh; height: 2vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:6vh; height: 2vh; border:1px groove;"></div>
+								</div>
+							</div>
+						</div>
+						<div class="advanture_textbook">
+							<div style="position: absolute; top:35vh; left: 48vh;">
+								<ul>
+									<li>冒險筆記</li>
+									<li style="list-style: none"><br></li>
+								</ul>
+							</div>
+							<div style="position:absolute;top:40vh; left:52vh; font-size: 0.2cm; width: 20vh; height: 13vh;">
+								<div style="width: 11vh;">
+									<div style=" float:left; width:7vh; height: 2vh; border:1px groove;">
+										生活方式
+									</div>
+									<div style=" float:left; width:3vh; height: 2vh; border:1px groove;">
+										備註
+									</div>
+								</div>
+								<div style="width: 11vh;">
+									<div contenteditable="true" style=" float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:3vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div style="width: 11vh;">
+									<div style=" float:left; width:7vh; height: 2vh; border:1px groove;">
+										生活支出
+									</div>
+									<div contenteditable="true" style=" float:left; width:3vh; height: 2vh; border:1px groove;"></div>
+								</div>
+								<div style="width: 11vh;">
+									<div contenteditable="true" style=" float:left; width:7vh; height: 2vh; border:1px groove;"></div>
+									<div contenteditable="true" style=" float:left; width:3vh; height: 2vh; border:1px groove;"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="create_or_edit_role_page_bottom">
+				<div style="position: absolute; left: 2vh; width: 1vh; height: 1vh; border-radius: 99px; border: 1px groove;">
+					<label for="p1">1</label>
+				</div>
+				<div style="position: absolute; left: 6vh; width: 1vh; height: 1vh; border-radius: 99px; border: 1px groove;">
+					<label for="p2">2</label>
+				</div>
+				<div style="position: absolute; left: 10vh; width: 1vh; height: 1vh; border-radius: 99px; border: 1px groove;">
+					<label for="p3">3</label>
+				</div>
+				<div style="position: absolute; left: 14vh; width: 1vh; height: 1vh; border-radius: 99px; border: 1px groove;">
+					<label for="p4">4</label>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="popwindow_character_change">
+		<div class="popwindow_character_text">
+			<span>確定選擇 <span class="popwindow_character_text_color"></span> 成為目前角色？</span>
+		</div>
+		<div id="character_change_cancel">
+			取消
+		</div>
+		<div id="character_change_yes">
+			選擇角色
+		</div>
+	</div>
+</body>
+
+<!-- 拖移事件 --/
+	<script src="https://cdn.staticfile.org/dragula/3.7.2/dragula.min.js" charset="utf-8"></script>
+	<script type="text/javascript">
+		var drake = dragula([document.querySelector('#bottom_scroll')])
+	</script>
+-->
+
+<script type="text/javascript">
+	$("#dice_button").click(function(){
+			document.getElementById("dice_page").style.display="block";
+			$("#dice_sum").empty();
+			for(var i=0;i<1000;i++){
+				$("#what_i_choose").remove();
+			}
+		});
+		$("#dice_close_btn").click(function(){
+			document.getElementById("dice_page").style.display="none";
+		});
+		$("#go").click(function(){
+			
+			var D = document.getElementById("dice_number").value;
+			var d = document.getElementById("dice_time").value;
+			var sum=1;
+				sum=1;
+			var how_D=1;
+			var how_sum=1;
+			var sum_value =0;
+			var ran=0;
+			var team=false;
+			for(var i=0;i<d;i++){
+				team[i]=0;
+			}
+			if(D=="4"){
+				how_D=4;
+			}
+			if(D=="6"){
+				how_D=6;
+			}
+			if(D=="8"){
+				how_D=8;
+			}
+			if(D=="10"){
+				how_D=10;
+			}
+			if(D=="12"){
+				how_D=12;
+			}
+			if(D=="20"){
+				how_D=20;
+			}
+			if(D=="100"){
+				how_D=100;
+			}
+			$("#reset").click(function() {
+				sum_value = 0;
+			});
+			$(".value_choose_i").remove();
+			$("#what_i_choose").remove();
+			for(var i=0;i<d;i++){
+				how_sum = Math.floor((Math.random() * how_D) + 1);
+				$("#dice_sum").append("<span class='value_choose_i' id='value_choose_"+i+"' style='margin: 0.3vh;'  value='"+how_sum+"' >"+how_sum+","+"</span>");
+			}
+			for(var i=0;i<d;i++){		
+				$("#value_choose_"+i).click(function(){
+
+						ran++;
+						this.style.border= "groove";
+						sum = $(this).attr('value');
+						sum_value = sum_value+parseInt($(this).attr('value'), 10);
+						document.getElementById("dice_choose").value = sum_value;
+						console.log(sum_value);
+						$("#dice_choose").append("<span id='what_i_choose' class='what_choose_"+ran+"' value='"+sum_value+"'   	style='margin: 0.3vh;' >"+sum+",</span>");
+						$("#reset").click(function(){			
+							for(var i=0;i<1000;i++){
+								$("#what_i_choose").remove();
+								document.getElementById("value_choose_"+i).style.border="0px groove";
+								document.getElementById("dice_choose").value=0;
+								
+							}
+							// i=0;
+							// continue;
+						})
+						$("#right").click(function(){
+							sum_value = document.getElementById("dice_choose").value;
+							for(var i=0;i<1000;i++){
+								$("#what_i_choose").remove();
+								// $(".value_choose_i").remove();
+							}
+							$("#dice_choose").append("<span id='what_i_choose' style='margin: 0.3vh;' >"+sum_value+",</span>");
+							sum_value =0;
+							return sum_value;
+						})
+				})				
+			}			
+		})
+	 	
+</script>
+
+<script>
+	// 刪掉一些非 DM 看不到的東西
+	if(confirm("DM = 取消　　　玩家 = 確定")) {
+		document.getElementById("dm_map_edit").style.display = "none";
+		document.getElementById("plus").style.display = "none";
+	}
+
+	//骰子按鈕的開關
+	document.getElementById("dice_btn").onclick = function() {
+		var diceWindow = document.getElementById("dice_window");
+		diceWindow.style.width  = (diceWindow.style.width  == "50vh")? "0vh": "50vh";
+		diceWindow.style.height = (diceWindow.style.height == "50vh")? "0vh": "50vh";
+		diceWindow.style.right  =  "24%";
+		diceWindow.style.bottom = "18vh";
+	}
+
+	var character_box = document.getElementsByClassName('character_box');
+	character_box.onclick = function() {
+		console.log("fuck you");
+		document.getElementById("character_info").style.height = "23vh";
+		document.getElementById("character_info_pic").style.height = "50vh";
+	}
+
+	// 申明全局变量
+	var timeStart, timeEnd, time;
+
+	// 获取此刻时间
+	function getTimeNow() {
+		var now = new Date();
+		return now.getTime();
+	}
+	var character_map_new;
+	// 長按跳出（選擇）交換目前角色清單（DM）
+	$('.character_box').mousedown(function(){
+
+		character_map_new = jQuery(this).children("div").children("p").text();
+		//获取鼠标按下时的时间
+		timeStart = getTimeNow();
+		//setInterval 会每 100 毫秒执行一次，也就是每 100 毫秒获取一次时间
+		time = setInterval(function () {
+			timeEnd = getTimeNow();
+
+			//如果此时检测到的时间与第一次获取的时间差有1000毫秒
+			if(timeEnd - timeStart > 1000) {
+				//便不再继续重复此函数 （clearInterval取消周期性执行）
+				clearInterval(time);
+				console.log('character:'+character_map_new);
+				name = character_map_new;
+				allObjJson["object"][name] = [];
+				allObjJson["object"][name][0] = 1;
+				allObjJson["object"][name][1] = 1;
+				allObjJson["object"][name][2] = 1;			//z座標
+				allObjJson["object"][name][3] = prompt('輸入物件圖像連結','');
+
+				img[name] = new Image();
+				img[name].src = allObjJson["object"][name][3];
+
+				drawDrid("");
+				ctxHid.stroke();
+				drawMagnifier(canvasMapHid);
+			}
+		}, 100);
+	});
+
+	// 清除長按的時間計算
+	$('.character_box').mouseup(function(){
+		console.log('clear');
+		clearInterval(time);
+	});
+
+//	禁止滑鼠右鍵選單顯示
+//	document.oncontextmenu = function(){return false};
+	
+	var change_character;
+
+	// 右鍵跳出（選擇）交換目前角色清單（DM）
+	$(".character_box").mouseup(function(e) {
+		if(e.button === 2) {
+			change_character = jQuery(this).children("div").children("p").text();
+			console.log(change_character);
+			$(".popwindow_character_text_color").html(change_character);
+			document.getElementById("popwindow_character_change").style.height = "150px";
+		}
+	});
+
+	//（選擇）交換角色
+	$("#character_change_yes").click(function() {
+		// jQuery(this).children("div").text() = $("character_info_main").text();
+		$("#character_info_main").children("div").children("p").html(change_character);
+		document.getElementById("popwindow_character_change").style.height = "0px";
+	});
+
+	// 取消（選擇）交換角色
+	$("#character_change_cancel").click(function() {
+		document.getElementById("popwindow_character_change").style.height = "0px";
+	});
+
+	// 雙擊彈出角色資訊（多個）與對話 && 角色立繪
+	$('.character_box').dblclick(function() {
+		document.getElementById("character_info").style.height = "23vh";
+		document.getElementById("character_info_pic").style.height = "50vh";
+		document.getElementById("character_info_name").style.height = "7vh";
+		$("#character_info_name").children("p").text(jQuery(this).children("div").text());
+	});
+
+	// 收回角色資訊與對話＆＆角色立繪
+	var character_info = document.getElementById("character_info");
+	character_info.onclick = function(){
+		document.getElementById("character_info").style.height = "0px";
+		document.getElementById("character_info_pic").style.height = "0px";
+		document.getElementById("character_info_name").style.height = "0vh";
+	}
+
+	// 說話到主要聊天室
+	$("#major_chat").keypress(function(event) {
+		if(event.which == 13) {
+			if(this.value != "" && this.value != "\n") {
+				socket.emit('major_chat_Message', {"player": document.getElementById("myName").innerHTML, "message": this.value});
+			}
+			this.value = "";
+			event.preventDefault();
+		}
+	});
+
+	// 說話到閒聊聊天室
+	$("#gossip_chat").keypress(function(event) {
+		if(event.which == 13) {
+			if(this.value != "" && this.value != "\n") {
+				socket.emit('gossip_chat_Message', {"player": document.getElementById("myName").innerHTML, "message": this.value});
+			}
+			this.value = "";
+			event.preventDefault();
+		}
+	});
+	
+	//標籤（區別主要與次要聊天室）
+	$("#major_chat").click(function() {
+		document.getElementById("glass").style.width = "0px";
+		document.getElementById("player_tag").style.width = "30vh";
+		$("#player_tag").children("p").text($("#character_info_main").children("div").children("p").text());
+	});
+
+	$("#major_chat").blur(function() {
+		document.getElementById("glass").style.width = "18vh";
+		document.getElementById("player_tag").style.width = "0vh";
+	});
+
+	$("#gossip_chat").click(function() {
+		document.getElementById("talk").style.width = "0px";
+		document.getElementById("player_tag_chat").style.width = "30vh";
+		$("#player_tag_chat").children("p").text($("#character_info_main").children("div").children("p").text());
+	});
+
+	$("#gossip_chat").blur(function() {
+		document.getElementById("talk").style.width = "18vh";
+		document.getElementById("player_tag_chat").style.width = "0vh";
+	});
+
+	var timeStart, timeEnd, time;
+
+	//获取此刻时间
+	function getTimeNow() {
+		var now = new Date();
+		return now.getTime();
+	}
+
+	$('#major_chat').click(function() {
+		timeStart = getTimeNow();
+		time = setInterval(function() {
+			timeEnd = getTimeNow();
+			if(timeEnd - timeStart > 2000) {
+				clearInterval(time);
+				document.getElementById("player_tag").style.width = "0vh";
+			}
+		}, 100);
+	});
+
+	$('#gossip_chat').click(function() {
+		timeStart = getTimeNow();
+		time = setInterval(function() {
+			timeEnd = getTimeNow();
+			if(timeEnd - timeStart > 2000) {
+				clearInterval(time);
+				document.getElementById("player_tag_chat").style.width = "0vh";
+			}
+		}, 100);
+	});
+
+	// 地圖類函數
+	reader = document.getElementById("uploader");
+	reader.addEventListener("change", handleFiles, false);
+
+	canvasMap = document.getElementById("map");
+	canvasMapHid = document.getElementById("maphid");
+	ctxHid = canvasMapHid.getContext("2d");
+	ctx = canvasMap.getContext("2d");
+
+
+	img = {};//預載圖片
+	allObjJson = {};//地圖資料
+
+	centerPoint = {};//放大中心
+	scale = 1;//放大倍率
+
+	size = 40;
+	target = "";
+
+	canvasMap.onmousedown = function(e){
+		var rect = canvasMap.getBoundingClientRect();
+		var x = e.clientX - rect.left;
+		var y = e.clientY - rect.top;
+		nx = x, ny = y;
+		var temp = realXY(x, y);
+		var x = parseInt(temp[0]/size)+1;
+		var y = parseInt(temp[1]/size)+1;
+		for(var i in allObjJson["object"]){
+			if(allObjJson["object"][i][0] == x && allObjJson["object"][i][1] == y){
+				target = i;
+				console.log("change");
+				break;
+			}
+		}
+//		console.log(x, y, target, "downpsl");
+		canvasMap.onmousemove  = function(e){
+			var rect = canvasMap.getBoundingClientRect();
+			var x = e.clientX - rect.left;
+			var y = e.clientY - rect.top;
+//			console.log(x,y);
+			if(target != ""){
+				var temp = realXY(x, y);
+				var x = temp[0];
+				var y = temp[1];
+				if(x < 0){
+					x = 0;
+				}
+				if(y < 0){
+					y = 0;
+				}
+				if(x+size > allObjJson["size"][0]*size){
+					x = allObjJson["size"][0]*size-size;
+				}
+				if(y+size > allObjJson["size"][1]*size){
+					y = allObjJson["size"][1]*size-size;
+				}
+				drawDrid(target);
+				ctxHid.drawImage(img[target], x, y, size, size);
+				ctxHid.stroke();
+		        drawMagnifier(canvasMapHid);
+			}
+			else{
+				var direction = {"x":x - nx, "y":y-ny};
+				centerPoint.x += direction.x;
+				centerPoint.y += direction.y;
+				nx = x;
+				ny = y;
+				drawDrid("");
+				ctxHid.stroke();
+		        drawMagnifier(canvasMapHid);
+			}
+		};
+		canvasMap.onmouseleave = function(e){
+			if(target == ""){
+				canvasMap.onmousemove  = function(e){}
+			}
+		}
+	}
+
+	canvasMap.onmouseup = function(e){
+		if(target != ""){
+			var rect = canvasMap.getBoundingClientRect();
+			var x = e.clientX - rect.left;
+			var y = e.clientY - rect.top;
+			var temp = realXY(x, y);
+			var x = parseInt(temp[0]/size)+1;
+			var y = parseInt(temp[1]/size)+1;
+			if(x < 1){
+				x = 1;
+			}
+			if(y < 1){
+				y = 1;
+			}
+			if(x > allObjJson["size"][0]){
+				x = allObjJson["size"][0];
+			}
+			if(y > allObjJson["size"][1]){
+				y = allObjJson["size"][1];
+			}
+//			console.log(x, y, target, "UP");
+			socket.emit('update_object_location', {"x": x, "y": y, "target": target});
+
+			allObjJson["object"][target] = [x, y, 1];
+			drawDrid('');
+	        ctxHid.stroke();
+	        drawMagnifier(canvasMapHid);
+	        target = "";
+		}
+		canvasMap.onmousemove  = function(e){
+		};
+	};
+
+	socket.on('receive_update_object_location', function(data) {
+		allObjJson["object"][data["target"]] = [data["x"], data["y"], 1];
+		drawDrid('');
+		ctxHid.stroke();
+		drawMagnifier(canvasMapHid);
+		target = "";
+	});
+
+	canvasMap.onmouseenter  = function(e){
+		canvasMap.onmousewheel =function(e){
+	        if(e.wheelDelta){            //判斷瀏覽器IE，谷歌滑輪事件
+		        if(e.wheelDelta>0){  //當滑輪向上滾動時
+		        	scale+=0.05;
+//		           	console.log("滑輪向上滾動");
+		        }
+		        if(e.wheelDelta<0){          //當滑輪向下滾動時
+		        	scale-=0.05;
+//		            console.log("滑輪向下滾動");
+		        }
+	    	}else if(e.detail){             //Firefox滑輪事件
+	            if(e.detail>0){         //當滑輪向下滾動時
+	            	scale-=0.05;
+//	                console.log("滑輪向下滾動");
+	       		}
+	         	if(e.detail<0){            //當滑輪向上滾動時
+	         		scale+=0.05;
+//	                console.log("滑輪向上滾動");
+	         	}
+	        }
+	        if(scale<0.1){scale = 0.1};
+//	        console.log(scale);
+	        drawDrid('');
+	        ctxHid.stroke();
+	        drawMagnifier(canvasMapHid);
+	 	};
+	};
+	canvasMap.onmouseleave  = function(e){
+		canvasMap.onmousewheel =function(e){};
+	}
+
+</script>
+</html>

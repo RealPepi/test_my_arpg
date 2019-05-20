@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>map</title>
+	<meta charset="utf-8">
+	<style>
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+      #d1{
+      	border: 2px solid #00FFD1;
+      }
+    </style>
+    <script type="text/javascript" src="funO.js"></script>
+</head>
+<body>
+	<canvas id="map" width="500" height="500"></canvas>
+	<!--canvas id="maphid" style="display:none" width="500" height="500"></canvas-->
+	<canvas id="maphid" width="500" height="500"></canvas>
+	<input type="file" id="uploader" />
+	<input type="button" value="輸出喔" onclick="saveTextAsFile(allObjJson['name'],  JSON.stringify(allObjJson))" />
+	<input type="button" value="顯示圖像" onclick="drawDrid(ctxHid, '');ctxHid.stroke();drawMagnifier(canvasMapHid);" />
+	<input type="button" value="新的空白地圖(會刷新物件)" onclick="newMap()" />
+	<input type="button" value="新的物件" onclick="newObj()" />
+</body>
+<script type="text/javascript">
+	reader = document.getElementById("uploader");
+	reader.addEventListener("change", handleFiles, false);
+
+	canvasMap = document.getElementById("map");
+	canvasMapHid = document.getElementById("maphid");
+	ctxHid = canvasMapHid.getContext("2d");
+	ctx = canvasMap.getContext("2d");
+
+
+	img = {};//預載圖片
+	allObjJson = {};//地圖資料
+
+	centerPoint = {};//放大中心
+	scale = 1;//放大倍率
+
+	size = 40;
+	target = "";
+
+	canvasMap.onmousedown = function(e){
+		var rect = canvasMap.getBoundingClientRect();
+		var x = e.clientX - rect.left;
+		var y = e.clientY - rect.top;
+		nx = x, ny = y;
+		var temp = realXY(x, y);
+		console.log(temp, "downold");
+		var x = parseInt(temp[0]/size)+1;
+		var y = parseInt(temp[1]/size)+1;
+		for(var i in allObjJson["object"]){
+			if(allObjJson["object"][i][0] == x && allObjJson["object"][i][1] == y){
+				target = i;
+				console.log("change");
+				break;
+			}
+		}
+		console.log(x, y, target, "down");
+		canvasMap.onmousemove  = function(e){
+			var rect = canvasMap.getBoundingClientRect();
+			var x = e.clientX - rect.left;
+			var y = e.clientY - rect.top;
+			if(target != ""){
+				var temp = realXY(x, y);
+				var x = temp[0];
+				var y = temp[1];
+				if(x < 0){
+					x = 0;
+				}
+				if(y < 0){
+					y = 0;
+				}
+				if(x+size > allObjJson["size"][0]*size){
+					x = allObjJson["size"][0]*size-size;
+				}
+				if(y+size > allObjJson["size"][1]*size){
+					y = allObjJson["size"][1]*size-size;
+				}
+				drawDrid(target);
+				ctxHid.drawImage(img[target], x, y, size, size);
+				ctxHid.stroke();
+		        drawMagnifier(canvasMapHid);
+			}
+			else{
+				var direction = {"x":x - nx, "y":y-ny};
+				centerPoint.x += direction.x;
+				centerPoint.y += direction.y;
+				nx = x;
+				ny = y;
+				drawDrid("");
+				ctxHid.stroke();
+		        drawMagnifier(canvasMapHid);
+			}
+		};
+		canvasMap.onmouseleave = function(e){
+			if(target == ""){
+				canvasMap.onmousemove  = function(e){}
+			}
+		}
+	}
+
+	canvasMap.onmouseup = function(e){
+		if(target != ""){
+			var rect = canvasMap.getBoundingClientRect();
+			var x = e.clientX - rect.left;
+			var y = e.clientY - rect.top;
+			var temp = realXY(x, y);
+			var x = parseInt(temp[0]/size)+1;
+			var y = parseInt(temp[1]/size)+1;
+			if(x < 1){
+				x = 1;
+			}
+			if(y < 1){
+				y = 1;
+			}
+			if(x > allObjJson["size"][0]){
+				x = allObjJson["size"][0];
+			}
+			if(y > allObjJson["size"][1]){
+				y = allObjJson["size"][1];
+			}
+			console.log(x, y, target, "UP");
+			allObjJson["object"][target] = [x, y, 1];
+			drawDrid('');
+	        ctxHid.stroke();
+	        drawMagnifier(canvasMapHid);
+	        target = "";
+		}
+		canvasMap.onmousemove  = function(e){
+		};
+	};
+	canvasMap.onmouseenter  = function(e){
+		canvasMap.onmousewheel =function(e){
+	        if(e.wheelDelta){            //判斷瀏覽器IE，谷歌滑輪事件
+		        if(e.wheelDelta>0){  //當滑輪向上滾動時
+		        	scale+=0.1;
+		           	console.log("滑輪向上滾動");
+		        }
+		        if(e.wheelDelta<0){          //當滑輪向下滾動時
+		        	scale-=0.1;
+		            console.log("滑輪向下滾動");
+		        }
+	    	}else if(e.detail){             //Firefox滑輪事件
+	            if(e.detail>0){         //當滑輪向下滾動時
+	            	scale-=0.1;
+	                console.log("滑輪向下滾動");
+	       		}
+	         	if(e.detail<0){            //當滑輪向上滾動時
+	         		scale+=0.1;
+	                console.log("滑輪向上滾動");
+	         	}
+	        }
+	        if(scale<0.1){scale = 0.1};
+	        console.log(scale);
+	        drawDrid('');
+	        ctxHid.stroke();
+	        drawMagnifier(canvasMapHid);
+	 	};
+ 	};
+ 	canvasMap.onmouseleave  = function(e){
+ 		canvasMap.onmousewheel =function(e){};
+ 	}
+</script>
+</html>
